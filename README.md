@@ -1,32 +1,54 @@
-# React + TypeScript + Vite
+# Голосовая транскрипция (Whisper)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React-приложение для распознавания речи с использованием модели **Whisper** от Hugging Face. Работает полностью локально
+в браузере — данные не отправляются на сервер.
 
-Currently, two official plugins are available:
+## Возможности
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Запись звука** с микрофона
+- **Транскрибация** записанного аудио в текст (поддержка русского языка)
+- **Оффлайн-работа** — модель загружается один раз и кэшируется в браузере
+- **WebGPU** для ускоренного инференса
 
-## React Compiler
+## Технологии
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React 19 + TypeScript
+- Vite (dev-сервер)
+- TailwindCSS + DaisyUI (стилизация)
+- Zustand (state management)
+- @huggingface/transformers (модель Whisper)
+- Web Workers (асинхронная обработка модели)
 
-## Expanding the Oxlint configuration
+## Установка и запуск
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm start
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Затем откройте `http://localhost:3000` в браузере.
+
+## Архитектура
+
+```
+src/
+├── main.tsx              # точка входа
+├── App.tsx               # корневой компонент
+├── index.css             # стили
+├── components/
+│   ├── Recording.tsx     # управление записью и транскрипцией
+│   └── Error.tsx         # отображение ошибок
+├── store/
+│   └── appStore.ts       # Zustand store
+└── workers/
+    ├── downloadModel.worker.ts  # Web Worker для загрузки и транскрипции
+    └── useModelWorker.ts        # хук для инициализации Worker
+```
+
+## Принцип работы
+
+1. **Загрузка модели** — при первом запуске модель `Xenova/whisper-base` (~317 МБ) скачивается из интернета и
+   сохраняется в кэше браузера
+2. **Запись** — `MediaRecorder` записывает звук с микрофона в WebM
+3. **Транскрибация** — аудио декодируется и передаётся в Web Worker, где модель Whisper распознаёт речь
+4. **Результат** — транскрибированный текст отображается в реальном времени
