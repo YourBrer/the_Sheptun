@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@plugin "daisyui";
+/* Разблокировать, если нужна динамичная тема - как в ОС */
+/*@plugin "daisyui" {*/
+/*    themes: light --default;*/
+/*}*/
+
+:root {
+    color-scheme: light;
+}
+
+body {
+    background: linear-gradient(211deg, rgb(196, 224, 229) 12%, rgb(145, 168, 199) 95%);
+    padding: 32px;
+}
