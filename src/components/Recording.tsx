@@ -105,9 +105,9 @@ export function Recording() {
 					<button className='btn btn-primary' onClick={startRecording} disabled={isRecording}>
 						{isRecording ? 'Идёт запись...' : 'Запись'}
 					</button>
-					<button className='btn btn-secondary' onClick={stopRecording}>
+					{isRecording && <button className='btn btn-secondary' onClick={stopRecording}>
 						Стоп
-					</button>
+					</button>}
 				</div>
 			}
 			{transcribingText && <h3 className='mt-3 font-semibold max-w-full'>{transcribingText}</h3>}
