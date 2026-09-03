@@ -16,10 +16,14 @@ export function Recording() {
 
 	const audioURLRef = useRef<string | null>(null);
 	const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+	const streamRef = useRef<MediaStream | null>(null);
 
 	function startRecording() {
+		if (mediaRecorderRef.current?.state === 'recording') return;
+
 		navigator.mediaDevices.getUserMedia({ audio: true })
 		.then((stream) => {
+			streamRef.current = stream;
 			const recorder = new MediaRecorder(stream);
 			mediaRecorderRef.current = recorder;
 			const chunks: Blob[] = [];
@@ -30,7 +34,6 @@ export function Recording() {
 
 			recorder.onstop = () => {
 				const blob = new Blob(chunks, { type: 'audio/webm' });
-				if (audioURLRef.current) URL.revokeObjectURL(audioURLRef.current);
 				const url = URL.createObjectURL(blob);
 				audioURLRef.current = url;
 
@@ -60,23 +63,28 @@ export function Recording() {
 		const response = await fetch(audioFileOrUrl);
 		const arrayBuffer = await response.arrayBuffer();
 		const audioCtx = new window.AudioContext({ sampleRate: 16000 });
-		const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-		const float32Data = audioBuffer.getChannelData(0);
-		await audioCtx.close();
+		try {
+			const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+			const float32Data = audioBuffer.getChannelData(0);
 
-		setState({ isTranscribing: true });
-		worker.postMessage({
-			type: WorkerMessageTypes.Transcribe,
-			payload: float32Data
-		});
+			setState({ isTranscribing: true });
+			worker.postMessage({
+				type: WorkerMessageTypes.Transcribe,
+				payload: float32Data
+			});
+		} catch (e: any) {
+			setError(`Ошибка транскрибации записи: ${e.message || e.data?.message}`)
+		} finally {
+			URL.revokeObjectURL(audioFileOrUrl);
+			await audioCtx.close();
+		}
 	}
 
-	// удаляем аудио из памяти и останавливаем воспроизведение
+	// удаляем аудио из памяти и останавливаем воспроизведение/запись
 	useEffect(() => {
 		return () => {
-			if (audioURLRef.current) {
-				URL.revokeObjectURL(audioURLRef.current);
-			}
+			if (audioURLRef.current) URL.revokeObjectURL(audioURLRef.current);
+			if (streamRef.current) streamRef.current.getTracks().forEach((track) => track.stop());
 			if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
 				mediaRecorderRef.current.stop();
 			}

@@ -12,7 +12,7 @@ type WorkerMessageType = typeof WorkerMessageTypes[keyof typeof WorkerMessageTyp
 
 export interface WorkerMessage {
 	type: WorkerMessageType;
-	payload: any,
+	payload: any;
 }
 
 let transcriber: AutomaticSpeechRecognitionPipeline | null = null;
@@ -25,8 +25,6 @@ self.onmessage = async ({ data }) => {
 		case WorkerMessageTypes.Load:
 			const modelId = 'Xenova/whisper-base'; // 317 Mb
 			// const modelId = 'onnx-community/whisper-tiny'; // 178 Mb
-			let intervalId: NodeJS.Timeout | null = null;
-			let lastProgressValue = 0;
 			try {
 				transcriber = await pipeline(
 					'automatic-speech-recognition',
@@ -36,13 +34,10 @@ self.onmessage = async ({ data }) => {
 						progress_callback: info => {
 							if (info.status !== 'progress_total') return;
 
-							lastProgressValue = Math.trunc(info.progress);
-
-							if (!intervalId) {
-								intervalId = setInterval(() => {
-									self.postMessage({ type: WorkerMessageTypes.Progress, payload: lastProgressValue })
-								}, 1000)
-							}
+							self.postMessage({
+								type: WorkerMessageTypes.Progress,
+								payload: Math.trunc(info.progress),
+							});
 						}
 					}
 				);
@@ -52,7 +47,6 @@ self.onmessage = async ({ data }) => {
 				console.error(e);
 			} finally {
 				self.postMessage({ type: WorkerMessageTypes.Done, payload: null })
-				if (intervalId) clearInterval(intervalId)
 			}
 			break;
 		case WorkerMessageTypes.Transcribe:
