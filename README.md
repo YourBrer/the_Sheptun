@@ -42,6 +42,7 @@ src/
 │   └── appStore.ts       # Zustand store
 └── workers/
     ├── downloadModel.worker.ts  # Web Worker для загрузки и транскрипции
+    ├── messages.ts              # общий контракт сообщений UI ↔ Worker (без кода модели)
     └── useModelWorker.ts        # хук для инициализации Worker
 ```
 

@@ -2,14 +2,13 @@ import { create } from 'zustand'
 
 interface States {
 	isModelLoading: boolean;
-	isTextTranscribing: boolean;
+	isWorkerReady: boolean;
 	isTranscribing: boolean;
 	isRecording: boolean;
 }
 
 interface AppState {
 	error: string | null;
-	modelLoadingProgress: number | null;
 	loadingProgress: number;
 	states: States;
 	transcribingText: string;
@@ -21,12 +20,11 @@ interface AppState {
 
 export const useAppStore = create<AppState>()((set) => ({
 	error: null,
-	modelLoadingProgress: 0,
 	loadingProgress: 0,
 	transcribingText: '',
 	states: {
 		isModelLoading: true,
-		isTextTranscribing: false,
+		isWorkerReady: false,
 		isTranscribing: false,
 		isRecording: false,
 	},

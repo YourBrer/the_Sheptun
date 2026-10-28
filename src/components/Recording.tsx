@@ -1,13 +1,14 @@
-import { WorkerMessageTypes } from "../workers/downloadModel.worker.ts";
 import { useEffect, useRef } from "react";
 import { useModelWorker } from "../workers/useModelWorker.ts";
+import { type WorkerMessage, WorkerMessageTypes } from "../workers/messages.ts";
 import { useAppStore } from "../store/appStore.ts";
 
 export function Recording() {
-	const worker = useModelWorker();
+	const workerRef = useModelWorker();
 
 	const isRecording = useAppStore(store => store.states.isRecording);
 	const isModelLoading = useAppStore(store => store.states.isModelLoading);
+	const isWorkerReady = useAppStore(store => store.states.isWorkerReady);
 	const isTranscribing = useAppStore(store => store.states.isTranscribing);
 	const transcribingText = useAppStore(store => store.transcribingText);
 	const loadingProgress = useAppStore(store => store.loadingProgress);
@@ -58,6 +59,7 @@ export function Recording() {
 	}
 
 	async function processAndSendAudio(audioFileOrUrl: string) {
+		const worker = workerRef.current;
 		if (!worker) return;
 
 		const response = await fetch(audioFileOrUrl);
@@ -68,10 +70,11 @@ export function Recording() {
 			const float32Data = audioBuffer.getChannelData(0);
 
 			setState({ isTranscribing: true });
-			worker.postMessage({
-				type: WorkerMessageTypes.Transcribe,
-				payload: float32Data
-			});
+			worker.postMessage(
+				{ type: WorkerMessageTypes.Transcribe, payload: float32Data } satisfies WorkerMessage,
+				// передаём владение буфером воркеру без копирования (structured clone был бы лишним)
+				[float32Data.buffer as ArrayBuffer]
+			);
 		} catch (e: any) {
 			setError(`Ошибка транскрибации записи: ${e.message || e.data?.message}`)
 		} finally {
@@ -91,7 +94,9 @@ export function Recording() {
 		};
 	}, []);
 
-	if (!worker) return <h3 className='font-semibold'>Проблема с загрузкой модели</h3>;
+	// воркер создаётся в useEffect, поэтому в первом рендере его ещё нет —
+	// показываем сообщение об ошибке только если загрузка заведомо не идёт
+	if (!isWorkerReady && !isModelLoading) return <h3 className='font-semibold'>Проблема с загрузкой модели</h3>;
 
 	return isModelLoading
 		? <div className='flex flex-col gap-2 justify-center items-center h-full'>
